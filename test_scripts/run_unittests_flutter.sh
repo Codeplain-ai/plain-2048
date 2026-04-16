@@ -8,6 +8,11 @@ if [ -z "$1" ]; then
   exit $UNRECOVERABLE_ERROR_EXIT_CODE
 fi
 
+if ! command -v flutter >/dev/null 2>&1; then
+  echo "Error: flutter is not available in PATH."
+  exit $UNRECOVERABLE_ERROR_EXIT_CODE
+fi
+
 current_dir=$(pwd)
 SOURCE_FOLDER=$1
 BUILD_SUBFOLDER=.tmp/flutter_build_unittests
