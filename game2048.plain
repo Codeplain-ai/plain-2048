@@ -1,0 +1,133 @@
+---
+import:
+  - flutter-flame
+description: 2048 puzzle game for iOS built with Flutter and Flame engine
+---
+
+***definitions***
+- :App: is the 2048 puzzle game application. :App: is named "2048".
+- :Tile: is a game piece with a numeric value.
+  - Value is a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, and above)
+  - Row position (0-3, top to bottom)
+  - Column position (0-3, left to right)
+- :GameBoard: is a 4x4 grid of cells that holds :Tile: items.
+  - Each cell is either empty or contains exactly one :Tile:.
+- :Score: is the current game score.
+  - Starts at 0 when a new game begins.
+  - Increases by the value of each newly merged :Tile:.
+- :BestScore: is the highest :Score: ever achieved across all game sessions.
+  - Persisted locally between app sessions.
+- :ColorPalette: defines the visual theme of :App:.
+  - Primary green: #79fc96
+  - Primary lime: #e0ff6e
+  - Dark teal: #223936
+  - Light sage: #c5dcd9
+- :TileColor: is the background color assigned to a :Tile: based on its value.
+  - Low value tiles (2, 4) use lighter shades derived from :ColorPalette: light sage (#c5dcd9).
+  - Mid value tiles (8, 16, 32, 64) use shades derived from :ColorPalette: primary green (#79fc96).
+  - High value tiles (128, 256, 512, 1024, 2048 and above) use shades derived from :ColorPalette: primary lime (#e0ff6e).
+  - Each tile value has a distinct shade that gets progressively more vivid as the value increases.
+- :NewGameButton: is a button that resets the :GameBoard: and :Score: to start a fresh game.
+- :TopBar: is the UI area above the :GameBoard: displaying the game title, :Score:, :BestScore:, and the :NewGameButton:.
+- :GameOverDialog: is a dialog displayed when the player has no valid moves remaining.
+  - Shows the final :Score: and :BestScore:.
+  - Contains a :NewGameButton: to start a new game.
+- :WinDialog: is a dialog displayed when a :Tile: with value 2048 is created for the first time in a game session.
+  - Shows a congratulations message.
+  - Contains a "Keep Playing" button to dismiss the dialog and continue the game.
+  - Contains a :NewGameButton: to start a new game.
+  - Is shown only once per game session, even if the player creates additional 2048 tiles.
+
+***functional specs***
+- Implement the entry point for :App:.
+  - :App: launches into a single screen showing the :TopBar: and the :GameBoard:.
+  - The background color of the screen is :ColorPalette: dark teal (#223936).
+
+- :GameBoard: should be rendered as a 4x4 grid with rounded corners.
+  - The grid background color is a slightly lighter shade of :ColorPalette: dark teal.
+  - Each empty cell is visible as a rounded rectangle with a subtle darker fill.
+  - :GameBoard: is centered horizontally on the screen below the :TopBar:.
+  - :GameBoard: is square and sized to fit the screen width with horizontal padding.
+
+- :Tile: should be rendered as a rounded rectangle inside its grid cell.
+  - :Tile: displays its numeric value centered in the cell.
+  - :Tile: text color is :ColorPalette: dark teal (#223936) for tile values up to 64, and white for tile values 128 and above.
+  - :Tile: font size decreases for values with more digits (4+ digits use a smaller font than 1-2 digit values).
+  - :Tile: background color is determined by :TileColor:.
+
+- When a new game starts, :GameBoard: should be cleared and two :Tile: items should be placed in random empty cells.
+  - Each new :Tile: has a 90% chance of having value 2 and a 10% chance of having value 4.
+  - :Score: is reset to 0.
+
+- The player should be able to swipe on the :GameBoard: in four directions: up, down, left, or right.
+  - A swipe is detected when a drag gesture ends (finger lifted) on the :GameBoard: area.
+  - The swipe direction is determined by the dominant axis and direction of the total drag displacement from start to end.
+  - A minimum drag distance is required to register as a swipe. Drags shorter than the minimum are ignored.
+
+- Left-merge row processing should follow a compress-merge-compress sequence.
+  - Compress: slide all non-empty :Tile: items toward index 0, preserving their relative order and filling gaps.
+  - Merge: scan from index 0 to the end; when two adjacent :Tile: items have the same value, combine them into one :Tile: with double the value at the left position and remove the right :Tile:. Each :Tile: can only merge once per pass.
+  - Compress again: slide all non-empty :Tile: items toward index 0 to close gaps created by merges.
+
+- When processing a swipe, :GameBoard: should normalize all four swipe directions to a single left-merge operation using grid rotation.
+  - The grid data is rotated clockwise by: 0 times for left, 1 time for up, 2 times for right, 3 times for down.
+  - After rotation, every row is processed independently using left-merge logic.
+  - After processing, the grid data is rotated back by (4 minus the original rotation count) times to restore the original orientation.
+  - A single 90-degree clockwise rotation maps cell (row, col) to (col, N-1-row) where N is the grid size.
+  - This rotation operates on the grid data only and must not affect the visual rendering or layout of :GameBoard:.
+  - All position tracking within a row (initial position, target position, move detection) must use the tile's index in the rotated row, not the tile's original pre-rotation coordinates.
+
+- When the player swipes, :GameBoard: should process the move using grid rotation and left-merge row processing, and produce a list of tile movements.
+  - Before processing, record each :Tile: item's current row and column as its origin position.
+  - After processing, determine each :Tile: item's final row and column, and whether it was merged or unchanged.
+  - The result of processing is a list of move records, where each record contains: the :Tile: item, its origin position, its destination position, and whether it participates in a merge.
+  - :Score: increases by the value of each newly merged :Tile:.
+  - A swipe only counts as a valid move if at least one :Tile: item's destination differs from its origin or a merge occurred.
+
+- After a valid swipe, :GameBoard: should apply the move records to update the visual state.
+  - Each :Tile: uses its move record to animate from its origin position to its destination position.
+  - All slide animations run simultaneously.
+  - When two :Tile: items merge, both slide to the same destination. After the slide animations complete, the two source :Tile: items are removed and a new :Tile: with the merged value is created at the destination.
+  - After all slide and merge animations complete, one new :Tile: is spawned in a random empty cell with a 90% chance of value 2 and a 10% chance of value 4.
+
+- :Tile: should animate smoothly when sliding to a new position during a swipe.
+  - Each :Tile: receives exactly one slide animation per swipe, moving directly from its original position to its final position.
+  - The slide animation duration should be approximately 150 milliseconds.
+
+- :Tile: should play a pop/scale animation when two tiles merge.
+  - The merged :Tile: is created at full size (scale 1.0), then scales up to 1.15, then scales back down to 1.0.
+  - The merge animation is a two-step sequence: scale up over 100 milliseconds, then scale down over 100 milliseconds.
+  - The merged :Tile: must remain visible at scale 1.0 after the animation completes.
+
+- A newly spawned :Tile: should animate by scaling from 0 to full size.
+  - The appear animation duration should be approximately 150 milliseconds.
+
+- :TopBar: should display the title "2048", the current :Score:, the :BestScore:, and the :NewGameButton:.
+  - The title "2048" is displayed on the left side in large bold text using :ColorPalette: primary green (#79fc96).
+  - :Score: and :BestScore: are displayed as labeled boxes on the right side.
+  - The score label text and values use :ColorPalette: light sage (#c5dcd9) and white respectively.
+  - The score box background is a slightly lighter shade of :ColorPalette: dark teal.
+  - :NewGameButton: is displayed below the score boxes, styled with :ColorPalette: primary green (#79fc96) background and :ColorPalette: dark teal (#223936) text.
+
+- :BestScore: should be persisted locally using SharedPreferences.
+  - When :Score: exceeds the current :BestScore:, :BestScore: is updated and saved immediately.
+  - On app launch, :BestScore: is loaded from SharedPreferences. If no value exists, it defaults to 0.
+
+- When no valid moves remain on the :GameBoard:, the :GameOverDialog: should be displayed.
+  - No valid moves means every cell is occupied and no adjacent cells share the same value.
+  - :GameOverDialog: appears as a semi-transparent overlay on top of the :GameBoard:.
+  - :GameOverDialog: shows "Game Over" as the title, the final :Score:, the :BestScore:, and a :NewGameButton:.
+  - :GameOverDialog: uses :ColorPalette: dark teal (#223936) background with :ColorPalette: light sage (#c5dcd9) text.
+
+- When a :Tile: with value 2048 is created through merging, the :WinDialog: should be displayed.
+  - :WinDialog: appears only the first time 2048 is reached in a game session.
+  - :WinDialog: shows "You Win!" as the title with a congratulations message.
+  - :WinDialog: has a "Keep Playing" button that dismisses the dialog and resumes the game.
+  - :WinDialog: has a :NewGameButton: to start a fresh game.
+  - :WinDialog: uses :ColorPalette: primary lime (#e0ff6e) as accent color and :ColorPalette: dark teal (#223936) for text.
+  - After dismissing :WinDialog:, the game continues normally and the player can keep building higher tiles.
+
+- Pressing :NewGameButton: should start a new game.
+  - :BestScore: is not affected.
+  - Any open dialog (:GameOverDialog: or :WinDialog:) is dismissed.
+  - The win state is reset so :WinDialog: can appear again in the new game session.

@@ -1,0 +1,22 @@
+---
+required_concepts: [":App:", ":GameBoard:"]
+description: Shared Flutter + Flame engine template for iOS game development
+---
+
+***definitions***
+- :FlameGame: is the Flame game engine instance that manages the game loop, rendering, and input handling for :App:.
+- :FlameComponent: is a visual element managed by :FlameGame: that can be rendered, updated, and receive input.
+- :Overlay: is a Flutter widget layer rendered on top of :FlameGame: for UI elements like scores and dialogs.
+
+***implementation reqs***
+- :Implementation: should be in Dart using the Flutter framework.
+- :Implementation: should use the Flame game engine for game board rendering, tile animations, and input handling.
+- :Implementation: should use standard Flutter widgets for :Overlay: elements such as score displays, buttons, and dialogs.
+- :Implementation: should target iOS only.
+- :Implementation: should use SharedPreferences for local data persistence.
+- :Implementation: should use the `flame` and `shared_preferences` packages from pub.dev.
+
+***test reqs***
+- :ConformanceTests: should be implemented using the flutter_test framework.
+- :ConformanceTests: will be run using "flutter test" command.
+- :ConformanceTests: must be implemented and executed - do not skip tests.
