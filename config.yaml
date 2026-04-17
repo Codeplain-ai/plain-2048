@@ -1,4 +1,4 @@
-verbose: false
+verbose: true
 api: https://api.codeplain.ai
 unittests-script: test_scripts/run_unittests_flutter.sh
 template-dir: template
